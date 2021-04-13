@@ -96,15 +96,6 @@ class Player(pygame.sprite.Sprite):
                     pygame.draw.lines(polygon.image,(0, 255, 0), 0, self.points, 1)
                     polygon.update_mask()
 
-                    '''
-                    We decided to divide the work of conquering an area into 2 cases:
-                        1. The line is between two opposite walls
-                        2. not 1
-                    case 2 is more efficient because we can use it to our advantage and extend start and ending points
-                    and using pygame's polygon in order to fill it
-                    However, case 1 uses an algorithm called flood fill (which is usually done recursively) that is
-                    slower but the only reasonable solving.
-                    '''
                     if start_dir == end_dir:
                         end = (self.points[0][0], self.points[-1][1])
                         if end not in CORNERS:
