@@ -40,11 +40,17 @@ class Player(pygame.sprite.Sprite):
             x += 1
         elif dir == "LEFT":
             y -= 1
+        elif dir == "RIGHT":
+            y += 1
         else:
             y += 1
         x = self.clamp(x, 0, 79)
         y = self.clamp(y, 0, 75)
-        if grid[x][y] == 1 or reach_wall((x, y)):
+        if grid[x][y] == 1:
+            x = self.cell[0]
+            y = self.cell[1]
+            self.touch_wall += 1
+        if reach_wall((x, y)):
             self.touch_wall += 1
         self.cell = (x, y)
         self.cells.append(self.cell)

@@ -46,13 +46,19 @@ while not done:
             done = True  # Flag that we are done so we exit this loop
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                player.move("LEFT", p.grid)
+                pressed_left = True
+                if pressed_left:
+                    player.move("LEFT", p.grid)
             if event.key == pygame.K_RIGHT:
                 player.move("RIGHT", p.grid)
             if event.key == pygame.K_UP:
                 player.move("UP", p.grid)
             if event.key == pygame.K_DOWN:
                 player.move("DOWN", p.grid)
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_LEFT:
+                pressed_left = False
+
     for cell in player.cells:
         p.grid[cell[0]][cell[1]] = 1
     p.grid[player.cell[0]][player.cell[1]] = 2
