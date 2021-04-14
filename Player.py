@@ -1,166 +1,97 @@
-# -*- coding: utf-8 -*-
+from utils import reach_wall
 import pygame
-import random
-import sys
 
 # Constants
-STILL = 0
+SCREEN_HEIGHT = 380
+SCREEN_WIDTH = 400
+SIZE = 5
+RED = (255, 0, 0)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+T = 3
+
 RIGHT = 1
 LEFT = 2
 UP = 3
 DOWN = 4
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-
-CORNERS = [(0, 0), (0, SCREEN_HEIGHT - 1), (SCREEN_WIDTH - 1, 0), (SCREEN_WIDTH - 1, SCREEN_HEIGHT - 1)]
-WHITE = (255, 255, 255)
 
 class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        self.width = SIZE
+        self.height = SIZE
+        self.pos = (SCREEN_WIDTH - SIZE, SCREEN_HEIGHT - SIZE)
+        self.cell = self.get_cell()
+        self.touch_wall = 0
+        self.cells = [self.cell]
 
-    def __init__(self, color=WHITE):
-        super(Player, self).__init__()
-        self.image = pygame.Surface([10, 10])
-        self.image.fill(color)
-        self.image.set_colorkey((0, 0, 0))
-        self.movement = 0
-        self.speed = 30
-        self.rect = self.image.get_rect()
+    def get_cell(self):
+        return (self.pos[0] // SIZE, self.pos[1] // SIZE)
 
-        # Randomizing player's location on initial conquered area
-        self.rect.x = SCREEN_WIDTH - 20
-        self.rect.y = SCREEN_HEIGHT - 20
+    def calc_pos(self, cell):
+        return (cell[0] * SIZE, cell[1] * SIZE)
 
-        self.points = []
-        self.mask = pygame.mask.from_surface(self.image)
-        self.in_conquered = False
-
-    def move_right(self, pixels):
-        if self.rect.right + pixels >= SCREEN_WIDTH:
-            self.rect.right = SCREEN_WIDTH - 1
-            self.movement = STILL
+    def move(self, dir, grid):
+        x, y = self.cell
+        if dir == "UP":
+            x -= 1
+        elif dir == "DOWN":
+            x += 1
+        elif dir == "LEFT":
+            y -= 1
         else:
-            self.rect.x += pixels
+            y += 1
+        x = self.clamp(x, 0, 79)
+        y = self.clamp(y, 0, 75)
+        if grid[x][y] == 1 or reach_wall((x, y)):
+            self.touch_wall += 1
+        self.cell = (x, y)
+        self.cells.append(self.cell)
 
-    def move_left(self, pixels):
-        if self.rect.left - pixels <= 0:
-            self.rect.left = 0
-            self.movement = STILL
+    def clamp(self, value, min_val, max_val):
+        if value <= min_val:
+            return min_val
+        elif value >= max_val:
+            return max_val
         else:
-            self.rect.x -= pixels
+            return value
 
-    def move_up(self, pixels):
-        if self.rect.top - pixels <= 0:
-            self.rect.top = 0
-            self.movement = STILL
-        else:
-            self.rect.y -= pixels
-
-    def move_down(self, pixels):
-        if self.rect.bottom + pixels >= SCREEN_HEIGHT:
-            self.rect.bottom = SCREEN_HEIGHT - 1
-        else:
-            self.rect.y += pixels
-
-    def change_movement(self, option):
-        self.movement = option
-
-    def get_pos(self):
-        return list(self.rect.center)
-
-    def add_point(self):
-        self.points.append(self.get_pos())
-
-    def update(self, polygon):
-        if len(self.points) > 1:
-            if not polygon.mask.get_at(self.points[0]):  # Extending first point if floating
-                direction = self.line_direction(self.points[0], self.points[1])
-                if direction == RIGHT:
-                    self.points[0][0] -= 5
-                if direction == LEFT:
-                    self.points[0][0] += 5
-                if direction == DOWN:
-                    self.points[0][1] -= 5
-                if direction == UP:
-                    self.points[0][1] += 5
-
-        if polygon.contains(self):  # If the whole player is inside the conquered area
-            if not self.in_conquered:  # If the boolean hasn't been updated
-                self.movement = STILL
-                self.in_conquered = True
-                if len(self.points) >= 2:
-                    start_dir = self.line_direction(self.points[0], self.points[1])
-                    end_dir = self.line_direction(self.points[-2], self.points[-1])
-
-                    # Drawing trail onto polygon
-                    pygame.draw.lines(polygon.image,(0, 255, 0), 0, self.points, 1)
-                    polygon.update_mask()
-
-                    if start_dir == end_dir:
-                        end = (self.points[0][0], self.points[-1][1])
-                        if end not in CORNERS:
-                            end = self.find_nearest_corner(end)
-                        self.points.append(end)
-                        polygon.add(self.points)
-                    else:
-                        self.extend_point(self.points[0], start_dir, True)
-                        self.extend_point(self.points[-1], end_dir, False)
-                        end = (self.points[0][0], self.points[-1][1])
-                        if end not in CORNERS:
-                            end = (self.points[-1][0], self.points[0][1])
-                        self.points.append(end)
-                        polygon.add(self.points)
-                self.points = []
-        elif self.in_conquered and not polygon.mask.get_at(self.get_pos()):  # Player is getting out of conquered area
-            self.in_conquered = False
-            self.add_point()
-        self.add_point()
-
-        if self.movement == RIGHT:
-            self.move_right(self.speed)
-        elif self.movement == LEFT:
-            self.move_left(self.speed)
-        elif self.movement == UP:
-            self.move_up(self.speed)
-        elif self.movement == DOWN:
-            self.move_down(self.speed)
-        polygon.update_mask()
-
-    def is_self_destruct(self):  # Player overlaps itself
-        for i in range(len(self.points) - 3):
-            x1, y1 = self.points[i]
-            x2, y2 = self.points[i+1]
-            if min(x1, x2) <= self.points[-1][0] <= max(x1, x2) and min(y1, y2) <= self.points[-1][1] <= max(y1, y2):
-                return True
+    def should_invoke_fill(self, conquered_set):
+        if self.touch_wall >= 2:
+            self.touch_wall = 1
+            return True
         return False
 
-    def line_direction(self, p1, p2):
-        if p1[0] < p2[0]:
-            return RIGHT
-        elif p1[0] > p2[0]:
-            return LEFT
-        elif p1[1] > p2[1]:
-            return UP
-        else:
-            return DOWN
-
-    def extend_point(self, p, direction, start):
-        if start and direction == RIGHT or not start and direction == LEFT:
-            p[0] = 0
-        elif start and direction == LEFT or not start and direction == RIGHT:
-            p[0] = SCREEN_WIDTH - 1
-        elif start and direction == UP or (not start and direction == DOWN):
-            p[1] = SCREEN_HEIGHT - 1
-        else:
-            p[1] = 0
-    
-    def find_nearest_corner(self, p):
-        m = 999999999
-        r = None
-        for c in CORNERS:
-            if self.sq_distance(p, c) < m:
-                m = self.sq_distance(p, c)
-                r = c
-        return list(r)
-    def sq_distance(self, p1, p2):
-        return (p1[0]-p2[0])**2 + (p1[1] - p2[1])**2
+    def calc_best_point(self, grid):
+        lp = self.cells[-1]
+        abv = (lp[0] - 1, lp[1] - 1)
+        bel = (lp[0] + 1, lp[1] + 1)
+        l = (lp[0] + 1, lp[1] - 1)
+        r = (lp[0] - 1, lp[1] + 1)
+        try:
+            abv_val = grid[abv[0]][abv[1]]
+        except IndexError:
+            abv_val = -1
+        try:
+            bel_val = grid[bel[0]][bel[1]]
+        except IndexError:
+            bel_val = -1
+        try:
+            l_val = grid[l[0]][l[1]]
+        except IndexError:
+            l_val = -1
+        try:
+            r_val = grid[r[0]][r[1]]
+        except IndexError:
+            r_val = -1
+        res = []
+        if abv_val == 0:
+            res.append(abv)
+        if bel_val == 0:
+            res.append(bel)
+        if l_val == 0:
+            res.append(l)
+        if r_val == 0:
+            res.append(r)
+        return res
