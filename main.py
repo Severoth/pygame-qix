@@ -1,4 +1,5 @@
 from Qix import Qix
+from Spark import Spark
 import pygame
 from Map import Polygon
 from Player import Player
@@ -32,10 +33,12 @@ clock = pygame.time.Clock()
 p = Polygon()
 player = Player()
 qix = Qix()
+spark = Spark()
 
 # -------- Main Program Loop -----------
 while not done:
     qix.move(random.choice(DIRS), p.grid)
+    spark.move(random.choice(DIRS), p.grid, player.cell[0], player.cell[1] )
     if qix.cell in player.cells:
         done = True
     for event in pygame.event.get():  # User did something
@@ -54,6 +57,7 @@ while not done:
         p.grid[cell[0]][cell[1]] = 1
     p.grid[player.cell[0]][player.cell[1]] = 2
     p.grid[qix.cell[0]][qix.cell[1]] = 3
+    p.grid[spark.cell[0]][spark.cell[1]] = 3
     if player.should_invoke_fill(p.conquered_set):
         best_points = player.calc_best_point(p.grid)
         bad_points = []
@@ -70,6 +74,7 @@ while not done:
 
     p.update_mask()
     p.grid[qix.cell[0]][qix.cell[1]] = 0
+    p.grid[spark.cell[0]][spark.cell[1]] = 0
 
     # Set the screen background
     screen.fill(BLACK)

@@ -48,10 +48,10 @@ class Polygon(pygame.sprite.Sprite):
                                   (SIZE) * row,
                                      SIZE,
                                      SIZE], 0)
-        pygame.draw.rect(self.image, WHITE, [0, 0, 5, 400])
-        pygame.draw.rect(self.image, WHITE, [0, 0, 380, 5])
-        pygame.draw.rect(self.image, WHITE, [375, 0, 5, 400])
-        pygame.draw.rect(self.image, WHITE, [0, 395, 380, 5])
+        #pygame.draw.rect(self.image, WHITE, [0, 0, 5, 400])
+        #pygame.draw.rect(self.image, WHITE, [0, 0, 380, 5])
+        #pygame.draw.rect(self.image, WHITE, [375, 0, 5, 400])
+        #pygame.draw.rect(self.image, WHITE, [0, 395, 380, 5])
 
     def count(self, grid, v):
         c = 0
